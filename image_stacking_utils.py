@@ -2,7 +2,7 @@ import math
 import numpy
 
 from enum import Enum
-from typing import Union, Tuple
+from typing import Union, Tuple, List
 
 
 class HorizontalAlignment(Enum):
@@ -39,6 +39,25 @@ def stack_images_checkups(first_image: numpy.ndarray, second_image: numpy.ndarra
         if first_image.shape[2] != second_image.shape[2]:
             raise ValueError("Images need to have same number of channels.",
                              "Expected image shapes (Height, Width, Channels)")
+
+
+def stack_multiple_images_horizontally(images: List[numpy.ndarray],
+                                       background_color: Union[int, Tuple[int, int, int], Tuple[int, int, int, int]]
+                                       = 0,
+                                       horizontal_alignment: Union[str, HorizontalAlignment]
+                                       = HorizontalAlignment.CENTER):
+    """Simple cyclic function based on stack_images_horizontally."""
+
+    if len(images) < 2:
+        raise ValueError("List is empty or with single image.")
+
+    stacked_image = images[0]
+    for second_image in images[1:]:
+        stacked_image = stack_images_horizontally(top_image=stacked_image, bottom_image=second_image,
+                                                  background_color=background_color,
+                                                  horizontal_alignment=horizontal_alignment)
+
+    return stacked_image
 
 
 def stack_images_horizontally(top_image: numpy.ndarray, bottom_image: numpy.ndarray,
@@ -106,7 +125,7 @@ def stack_images_horizontally(top_image: numpy.ndarray, bottom_image: numpy.ndar
 
         elif horizontal_alignment == HorizontalAlignment.CENTER:
             top_center_start = math.ceil((stacked_image_width / 2) - (top_width / 2))
-            bottom_center_start = math.ceil((stacked_image_width / 2) - (bottom_image / 2))
+            bottom_center_start = math.ceil((stacked_image_width / 2) - (bottom_width / 2))
 
             stacked_image[0:top_height, top_center_start:top_center_start + top_width, :] = top_image
             stacked_image[top_height:, bottom_center_start:bottom_center_start + bottom_width, :] = bottom_image
@@ -130,7 +149,7 @@ def stack_images_horizontally(top_image: numpy.ndarray, bottom_image: numpy.ndar
 
         elif horizontal_alignment == HorizontalAlignment.CENTER:
             top_center_start = math.ceil((stacked_image_width / 2) - (top_width / 2))
-            bottom_center_start = math.ceil((stacked_image_width / 2) - (bottom_image / 2))
+            bottom_center_start = math.ceil((stacked_image_width / 2) - (bottom_width / 2))
 
             stacked_image[0:top_height, top_center_start:top_center_start + top_width] = top_image
             stacked_image[top_height:, bottom_center_start:bottom_center_start + bottom_width] = bottom_image
@@ -141,6 +160,23 @@ def stack_images_horizontally(top_image: numpy.ndarray, bottom_image: numpy.ndar
 
             stacked_image[0:top_height, top_right_start:] = top_image
             stacked_image[top_height:, bottom_right_start:] = bottom_image
+
+    return stacked_image
+
+
+def stack_multiple_images_vertically(images: List[numpy.ndarray],
+                                     background_color: Union[int, Tuple[int, int, int], Tuple[int, int, int, int]] = 0,
+                                     vertical_alignment: Union[str, VerticalAlignment] = VerticalAlignment.CENTER):
+    """Simple cyclic function based on stack_images_horizontally."""
+
+    if len(images) < 2:
+        raise ValueError("List is empty or with single image.")
+
+    stacked_image = images[0]
+    for second_image in images[1:]:
+        stacked_image = stack_images_vertically(left_image=stacked_image, right_image=second_image,
+                                                background_color=background_color,
+                                                vertical_alignment=vertical_alignment)
 
     return stacked_image
 
