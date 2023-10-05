@@ -1,5 +1,6 @@
 import math
 import numpy
+import cv2
 
 from enum import Enum
 from typing import Union, Tuple, List
@@ -285,3 +286,98 @@ def stack_images_vertically(left_image: numpy.ndarray, right_image: numpy.ndarra
             stacked_image[right_bottom_start:, left_width:] = right_image
 
     return stacked_image
+
+
+def uniformly_cropped_image(image: numpy.ndarray, rows: int, columns: int):
+    """Function will vertically stack two numpy images into single one.
+
+        Parameters
+        ----------
+        image : numpy.ndarray
+            Input image which will be uniformly cropped into multiple images. Expected image format (Height, Width) or
+            (Height, Width, Channels).
+        rows: int
+            The number of rows corresponds to the number of image cuts by height. For 2 rows image will be cut in the
+            middle by height. For 3 rows image will be cut in every 1/3 of height.
+        columns: int
+            The number of rows corresponds to the number of image cuts by width. For 2 columns image will be cut in the
+            middle by width. For 3 rows image will be cut in every 1/3 of width.
+
+        Returns
+        -------
+        cropped_images : List[List[numpy.ndarray, ...],...]
+            It will return list of lists which will hold cropped numpy images. Returned list is for rows
+            and nested list is for columns.
+
+        Raises
+        ------
+        ValueError
+            If dimensions of images aren't 2D or 3D.
+            If number of columns or rows is less than 1.
+            If number of columns/rows is more that width/height of image
+        """
+
+    if rows < 1 or columns < 1:
+        raise ValueError("Minimal number for rows and columns is 1")
+
+    if len(image.shape) <= 1 or len(image.shape) > 3:
+        raise ValueError("Unsupported dimensionality for first image:",
+                         str(len(image)) + ". Supported dimensions are 2D or 3D.")
+
+    img_height = image.shape[0]
+    img_width = image.shape[1]
+
+    if rows > img_height:
+        raise ValueError("Image can not be cut to", rows, "rows. Maximal cuts are",
+                         img_height, "due to image height.")
+    if columns > img_width:
+        raise ValueError("Image can not be cut to", columns, "columns. Maximal cuts are",
+                         img_width, "due to image width.")
+
+    cropped_images = list()
+    cropped_height = img_height / rows
+    cropped_width = img_width / columns
+
+    for height_index in range(rows):
+        start_height_index = math.floor(cropped_height * height_index)
+        end_height_index = math.ceil(cropped_height * (height_index + 1))
+
+        cropped_images.append(list())
+
+        for width_index in range(columns):
+            start_width_index = math.floor(cropped_width * width_index)
+            end_width_index = math.ceil(cropped_width * (width_index + 1))
+
+            cut = numpy.array(image[start_height_index:end_height_index,
+                              start_width_index:end_width_index, :], dtype=image.dtype)
+            cropped_images[height_index].append(cut)
+
+    return cropped_images
+
+
+def save_cropped_images(cropped_images, name_before_indexing: str = ""):
+    for row in range(len(cropped_images)):
+        for col in range(len(cropped_images[row])):
+            cv2.imwrite(name_before_indexing + str(row) + "_" + str(col) + ".png", cropped_images[row][col])
+
+
+# exception if list with only one image, if different dtype between images, if different shape between images
+def average_color_values_in_images(images: List[numpy.ndarray]):
+
+    if len(images) < 2:
+        raise ValueError("Input list require at least two images.")
+
+    for img in images[1:]:
+        if img.dtype != images[0].dtype:
+            raise TypeError("Different dtype between images.")
+        if img.shape != images[0].shape:
+            raise ValueError("Different shape between images.")
+
+    sum_img = numpy.zeros(shape=images[0].shape, dtype='float64')
+
+    for img in images:
+        sum_img += img
+
+    sum_img = sum_img / len(images)
+
+    return sum_img.astype(images[0].dtype)
